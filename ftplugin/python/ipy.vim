@@ -82,11 +82,17 @@ def km_from_string(s=''):
     such as '--shell=47378 --iopub=39859 --stdin=36778 --hb=52668' for IPython 0.11
     or just 'kernel-12345.json' for IPython 0.12
     """
-    from os.path import join as pjoin
-    from IPython.zmq.blockingkernelmanager import BlockingKernelManager, Empty
-    from IPython.config.loader import KeyValueConfigLoader
-    from IPython.zmq.kernelapp import kernel_aliases
     global km,send,Empty
+    from os.path import join as pjoin
+    import IPython
+    if IPython.__version__ < '1.0':
+        from IPython.zmq.blockingkernelmanager import BlockingKernelManager, Empty
+        from IPython.zmq.kernelapp import kernel_aliases
+    else:
+        from IPython.kernel.blockingkernelmanager import BlockingKernelManager, Queue
+        from IPython.kernel.zmq.kernelapp import kernel_aliases
+        Empty = Queue.Empty
+    from IPython.config.loader import KeyValueConfigLoader
 
     s = s.replace('--existing', '')
     if 'connection_file' in BlockingKernelManager.class_trait_names():
@@ -297,7 +303,7 @@ def update_subchannel_msgs(debug=False, force=False):
             vim.command("imap <buffer> <c-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>pkddA")
             # ctrl-C gets sent to the IPython process as a signal on POSIX
             vim.command("map <buffer>  :IPythonInterrupt<cr>")
-    
+
     #syntax highlighting for python prompt
     # QtConsole In[] is blue, but I prefer the oldschool green
     # since it makes the vim-ipython 'shell' look like the holidays!
@@ -357,7 +363,7 @@ def update_subchannel_msgs(debug=False, force=False):
     if not startedin_vimipython:
         vim.command('normal p') # go back to where you were
     return update_occured
-    
+
 def get_child_msg(msg_id):
     # XXX: message handling should be split into its own process in the future
     while True:
@@ -369,7 +375,7 @@ def get_child_msg(msg_id):
             #got a message, but not the one we were looking for
             echo('skipping a message on shell_channel','WarningMsg')
     return m
-            
+
 def print_prompt(prompt,msg_id=None):
     """Print In[] or In[42] style messages"""
     global show_execution_count
@@ -488,7 +494,7 @@ def dedent_run_these_lines():
     run_these_lines()
     if count > 0:
        vim.command("silent undo")
-    
+
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
@@ -506,7 +512,7 @@ def toggle_reselect():
 #                                                        vim.current.window.cursor[0]))
 #    print "set breakpoint in %s:%d"% (vim.current.buffer.name, 
 #                                      vim.current.window.cursor[0])
-#    
+#
 #def clear_breakpoint():
 #    send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
 #                                                          vim.current.window.cursor[0]))
@@ -661,7 +667,7 @@ except Empty:
 for c in completions:
     vim.command('call add(res,"'+c+'")')
 endpython
-        "call extend(res,completions) 
+        "call extend(res,completions)
         return res
       endif
     endfun
